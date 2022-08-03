@@ -1,7 +1,7 @@
 import argparse
 import time
 from pathlib import Path
-
+import threading
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
@@ -125,11 +125,15 @@ def detect(save_img=False):
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
+                    # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
+                    threading.Thread(target=realtime.add_image, args=im0)
+                    if names[int(cls)] == "Human":
+                        threading.Thread(target=realtime.save_interference, args=conf)
+                    # --ENDED
+
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
-                        if names[int(cls)] == "Human":
-                            realtime.save_interference(conf)
 
             # Print time (inference + NMS)
             # print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
@@ -137,7 +141,6 @@ def detect(save_img=False):
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
-                realtime.add_image(im0)
                 cv2.waitKey(1)  # 1 millisecond
 
             # Save results (image with detections)
