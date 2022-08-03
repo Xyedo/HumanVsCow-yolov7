@@ -13,6 +13,7 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
+from utils.realtime_db_firebase.realtime import Realtime
 
 
 def detect(save_img=False):
@@ -75,7 +76,8 @@ def detect(save_img=False):
             img = img.unsqueeze(0)
 
         # Warmup
-        if device.type != 'cpu' and (old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
+        if device.type != 'cpu' and (
+                old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
             old_img_b = img.shape[0]
             old_img_h = img.shape[2]
             old_img_w = img.shape[3]
@@ -126,13 +128,16 @@ def detect(save_img=False):
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+                        if names[int(cls)] == "Human":
+                            realtime.save_interference(conf)
 
             # Print time (inference + NMS)
-            #print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
+            # print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
 
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
+                realtime.add_image(im0)
                 cv2.waitKey(1)  # 1 millisecond
 
             # Save results (image with detections)
@@ -157,7 +162,7 @@ def detect(save_img=False):
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-        #print(f"Results saved to {save_dir}{s}")
+        # print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
 
@@ -184,8 +189,8 @@ if __name__ == '__main__':
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
     opt = parser.parse_args()
     print(opt)
-    #check_requirements(exclude=('pycocotools', 'thop'))
-
+    # check_requirements(exclude=('pycocotools', 'thop'))
+    realtime = Realtime()
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov7.pt']:
