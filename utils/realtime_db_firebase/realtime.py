@@ -4,16 +4,17 @@ from firebase_admin import db
 from firebase_admin import firestore
 from firebase_admin import storage
 from datetime import datetime
+import constant
 
-path = "cattlesafe-6bda0-firebase-adminsdk-vgebs-e8a77fe6bb.json"
+path = constant.PATH
 
 
 class Realtime:
     def __int__(self):
         cred = credentials.Certificate(path)
         firebase_admin.initialize_app(cred, {
-            'databaseURL': 'https://cattlesafe-6bda0-default-rtdb.asia-southeast1.firebasedatabase.app/',
-            'storageBucket': 'cattlesafe-6bda0.appspot.com'
+            'databaseURL': constant.DATABASE_URL,
+            'storageBucket': constant.STORAGE_BUCKET
         })
         self._human_ref_json = db.reference('check/is-human/posts')
         self._human_ref_img = db.reference('monitor/posts')
