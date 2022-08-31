@@ -21,7 +21,7 @@ class Realtime:
         self._human_ref_img = db.reference('monitor/posts')
         self._bucket = storage.bucket()
 
-    def save_interference(self, conf):
+    def save_interference(self, conf: float):
         now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
         self._human_ref_json.push().set({
             'isHuman': conf,

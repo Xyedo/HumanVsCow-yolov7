@@ -126,9 +126,9 @@ def detect(save_img=False):
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
-                    threading.Thread(target=realtime.add_image, args=im0)
+                    threading.Thread(target=realtime.add_image, args=im0).start()
                     if names[int(cls)] == "Human":
-                        threading.Thread(target=realtime.save_interference, args=conf)
+                        threading.Thread(target=realtime.save_interference, args=conf).start()
                     # --ENDED
 
                     if save_img or view_img:  # Add bbox to image
