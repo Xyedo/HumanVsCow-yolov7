@@ -126,13 +126,17 @@ def detect(save_img=False):
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
-                    t1 = threading.Timer(interval=5, function=realtime.add_image, args=(im0,))
-                    ts_img_data.append(t1)
-                    t1.start()
-                    if names[int(cls)] == "Human":
+
+                    if realtime.is_img_upload_finish():
+                        t1 = threading.Timer(interval=5, function=realtime.add_image, args=(im0,))
+                        ts_img_data.append(t1)
+                        t1.start()
+
+                    if names[int(cls)] == "Human" and realtime.is_interference_upload_finish():
                         t2 = threading.Timer(interval=1, function=realtime.save_interference, args=(conf,))
                         ts_logger.append(t2)
                         t2.start()
+
                     # --ENDED
 
                     if save_img or view_img:  # Add bbox to image

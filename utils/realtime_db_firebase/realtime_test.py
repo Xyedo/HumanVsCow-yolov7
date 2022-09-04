@@ -1,4 +1,5 @@
 import threading
+import time
 import unittest
 from realtime import Realtime
 import cv2
@@ -22,12 +23,16 @@ class RealtimeDBTestCase(unittest.TestCase):
         ts_logger = []
         for i in range(5):
             conf = 0.5
-            t1 = threading.Timer(interval=5, function=self.rt.add_image, args=(im0,))
-            ts_img_data.append(t1)
-            t1.start()
-            t2 = threading.Timer(interval=1, function=self.rt.save_interference, args=(conf,))
-            ts_logger.append(t2)
-            t2.start()
+            if self.rt.is_img_upload_finish():
+                t1 = threading.Thread(target=self.rt.add_image, args=(im0,))
+                ts_img_data.append(t1)
+                t1.start()
+            if self.rt.is_interference_upload_finish():
+                t2 = threading.Thread(target=self.rt.save_interference, args=(conf,))
+                ts_logger.append(t2)
+                t2.start()
+            time.sleep(2)
+
         for t in ts_img_data:
             t.join()
         for t in ts_logger:

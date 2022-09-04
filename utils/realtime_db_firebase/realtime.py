@@ -1,6 +1,6 @@
 import cv2
 import firebase_admin
-import time
+from threading import Lock
 import numpy
 from firebase_admin import credentials
 from firebase_admin import db
@@ -20,13 +20,37 @@ class Realtime:
         self._human_ref_json = db.reference('logging/posts')
         self._human_ref_img = db.reference('monitor/posts')
         self._bucket = storage.bucket()
+        self._img_locker = Lock()
+        self._interference_locker = Lock()
+        self._is_add_img_finish = True
+        self._is_add_interference_finish = True
+
+    def is_interference_upload_finish(self):
+        with self._interference_locker:
+            return self._is_add_interference_finish
+
+    def is_img_upload_finish(self):
+        with self._img_locker:
+            return self._is_add_img_finish
+
+    def set_interference_finish(self, val: bool):
+        self._interference_locker.acquire()
+        self._is_add_interference_finish = val
+        self._interference_locker.release()
+
+    def set_img_finish(self, val: bool):
+        self._img_locker.acquire()
+        self._is_add_img_finish = val
+        self._img_locker.release()
 
     def save_interference(self, conf: float):
+        self.set_interference_finish(False)
         now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
         self._human_ref_json.push().set({
             'isHuman': conf,
             'detectedDate': now
         })
+        self.set_interference_finish(True)
 
     def _add_image_json(self, public_url: str):
         now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
@@ -36,6 +60,7 @@ class Realtime:
         })
 
     def add_image(self, file: numpy.ndarray):
+        self.set_img_finish(False)
         now = datetime.now()
         blob = self._bucket.blob(f'monitor/{now}')
         with TemporaryFile() as temp:
@@ -44,3 +69,5 @@ class Realtime:
             blob.upload_from_filename(filename_temp, content_type='image/jpeg')
             blob.make_public()
             self._add_image_json(blob.public_url)
+
+        self.set_img_finish(True)
