@@ -128,12 +128,12 @@ def detect(save_img=False):
                     # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
 
                     if realtime.is_img_upload_finish():
-                        t1 = threading.Timer(interval=5, function=realtime.add_image, args=(im0,))
+                        t1 = threading.Thread(target=realtime.add_image, args=(im0,))
                         ts_img_data.append(t1)
                         t1.start()
 
                     if names[int(cls)] == "Human" and realtime.is_interference_upload_finish():
-                        t2 = threading.Timer(interval=1, function=realtime.save_interference, args=(conf,))
+                        t2 = threading.Thread(target=realtime.save_interference, args=(conf,))
                         ts_logger.append(t2)
                         t2.start()
 

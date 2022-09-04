@@ -34,14 +34,12 @@ class Realtime:
             return self._is_add_img_finish
 
     def set_interference_finish(self, val: bool):
-        self._interference_locker.acquire()
-        self._is_add_interference_finish = val
-        self._interference_locker.release()
+        with self._interference_locker:
+            self._is_add_interference_finish = val
 
     def set_img_finish(self, val: bool):
-        self._img_locker.acquire()
-        self._is_add_img_finish = val
-        self._img_locker.release()
+        with self._img_locker:
+            self._is_add_img_finish = val
 
     def save_interference(self, conf: float):
         self.set_interference_finish(False)
