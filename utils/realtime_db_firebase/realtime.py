@@ -29,8 +29,10 @@ class Realtime:
         })
 
     def _add_image_json(self, public_url: str):
+        now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
         self._human_ref_img.push().set({
-            'imgUrl': public_url
+            'imgUrl': public_url,
+            'capturedDate': now
         })
 
     def add_image(self, file: numpy.ndarray):
@@ -42,4 +44,3 @@ class Realtime:
             blob.upload_from_filename(filename_temp, content_type='image/jpeg')
             blob.make_public()
             self._add_image_json(blob.public_url)
-        time.sleep(5)

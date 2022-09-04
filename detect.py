@@ -126,9 +126,13 @@ def detect(save_img=False):
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
-                    threading.Thread(target=realtime.add_image, args=im0).start()
+                    t1 = threading.Timer(interval=5, function=realtime.add_image, args=(im0,))
+                    ts_img_data.append(t1)
+                    t1.start()
                     if names[int(cls)] == "Human":
-                        threading.Thread(target=realtime.save_interference, args=conf).start()
+                        t2 = threading.Timer(interval=1, function=realtime.save_interference, args=(conf,))
+                        ts_logger.append(t2)
+                        t2.start()
                     # --ENDED
 
                     if save_img or view_img:  # Add bbox to image
@@ -194,6 +198,8 @@ if __name__ == '__main__':
     print(opt)
     # check_requirements(exclude=('pycocotools', 'thop'))
     realtime = Realtime()
+    ts_img_data = []
+    ts_logger = []
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov7.pt']:
@@ -201,3 +207,7 @@ if __name__ == '__main__':
                 strip_optimizer(opt.weights)
         else:
             detect()
+    for t in ts_img_data:
+        t.join()
+    for t in ts_logger:
+        t.join()
