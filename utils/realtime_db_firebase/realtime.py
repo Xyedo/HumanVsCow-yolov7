@@ -6,7 +6,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 from firebase_admin import storage
 from datetime import datetime
-import constant
+import utils.realtime_db_firebase.constant as constant
 from tempfile import TemporaryFile
 
 

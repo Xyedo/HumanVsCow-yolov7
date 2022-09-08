@@ -126,16 +126,16 @@ def detect(save_img=False):
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
-                    if opt.connect_rtdb:
-                        if realtime.is_img_upload_finish():
-                            t1 = threading.Thread(target=realtime.add_image, args=(im0,))
-                            ts_img_data.append(t1)
-                            t1.start()
+                    if opt.connect_rtdb and names[int(cls)] == "Human":
+                        if realtime.is_img_upload_finish() and float(conf) > 0.7:
+                            th1 = threading.Thread(target=realtime.add_image, args=(im0,))
+                            ts_img_data.append(th1)
+                            th1.start()
 
-                        if names[int(cls)] == "Human" and realtime.is_interference_upload_finish():
-                            t2 = threading.Thread(target=realtime.save_interference, args=(conf,))
-                            ts_logger.append(t2)
-                            t2.start()
+                        if realtime.is_interference_upload_finish():
+                            th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
+                            ts_logger.append(th2)
+                            th2.start()
 
                     # --ENDED
 
