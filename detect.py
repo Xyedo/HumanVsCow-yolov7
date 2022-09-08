@@ -126,16 +126,16 @@ def detect(save_img=False):
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
+                    if opt.connect_rtdb:
+                        if realtime.is_img_upload_finish():
+                            t1 = threading.Thread(target=realtime.add_image, args=(im0,))
+                            ts_img_data.append(t1)
+                            t1.start()
 
-                    if realtime.is_img_upload_finish():
-                        t1 = threading.Thread(target=realtime.add_image, args=(im0,))
-                        ts_img_data.append(t1)
-                        t1.start()
-
-                    if names[int(cls)] == "Human" and realtime.is_interference_upload_finish():
-                        t2 = threading.Thread(target=realtime.save_interference, args=(conf,))
-                        ts_logger.append(t2)
-                        t2.start()
+                        if names[int(cls)] == "Human" and realtime.is_interference_upload_finish():
+                            t2 = threading.Thread(target=realtime.save_interference, args=(conf,))
+                            ts_logger.append(t2)
+                            t2.start()
 
                     # --ENDED
 
@@ -198,10 +198,12 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
+    parser.add_argument('--connect-rtdb', action='store_true', help="connect to realtime database")
     opt = parser.parse_args()
     print(opt)
     # check_requirements(exclude=('pycocotools', 'thop'))
-    realtime = Realtime()
+    if opt.connect_rtdb:
+        realtime = Realtime()
     ts_img_data = []
     ts_logger = []
     with torch.no_grad():
