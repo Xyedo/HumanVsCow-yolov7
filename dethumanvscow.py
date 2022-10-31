@@ -5,18 +5,18 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
-
+from mpyg321.MPyg321Player import MPyg321Player
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams
-from utils.general import check_img_size, non_max_suppression, scale_coords,  set_logging
+from utils.general import check_img_size, non_max_suppression, scale_coords, set_logging
 from utils.plots import plot_one_box
-from utils.torch_utils import select_device,  time_synchronized
+from utils.torch_utils import select_device, time_synchronized
 from utils.realtime_db_firebase.realtime import Realtime
 
 
 def detect():
     source, weights, imgsz = opt.source, opt.weights, opt.img_size
-
+    alarm_once = True
     # Initialize
     set_logging()
     device = select_device(opt.device)
@@ -84,11 +84,13 @@ def detect():
 
             # Write results
             for *xyxy, conf, cls in reversed(det):
+                if names[int(cls)] != "Human":
+                    continue
                 label = f'{names[int(cls)]} {conf:.2f}'
                 plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
                 # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
-                if opt.connect_rtdb and names[int(cls)] == "Human":
+                if opt.connect_rtdb:
                     if realtime.is_img_upload_finish() and float(conf) > 0.7:
                         th1 = threading.Thread(target=realtime.add_image, args=(im0,))
                         ts_img_data.append(th1)
@@ -98,8 +100,11 @@ def detect():
                         th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
                         ts_logger.append(th2)
                         th2.start()
+                if opt.alarm and conf > 0.7 and alarm_once:
+                    alarm.play_song("alarm.mp3", loop=True)
+                    alarm_once = False
 
-                    # --ENDED
+            # --ENDED
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
             cv2.imshow(str(p), im0)
@@ -120,12 +125,15 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--connect-rtdb', action='store_true', help="connect to realtime database")
+    parser.add_argument('--alarm', action='store_true', help='for alarm system')
     opt = parser.parse_args()
     print(opt)
     if opt.connect_rtdb:
         realtime = Realtime()
     ts_img_data = []
     ts_logger = []
+    if opt.alarm:
+        alarm = MPyg321Player()
     with torch.no_grad():
         detect()
     for t in ts_img_data:
