@@ -243,8 +243,8 @@ class LoadWebcam:  # for inference
         img = letterbox(img0, self.img_size, stride=self.stride)[0]
 
         # Convert
-        img = np.expand_dims(img, 2)
-        img = img.transpose(2, 0, 1)  # Gray to RGB, from HWC-layout to CHW layout
+
+        img = img[:, :, ::-1].transpose(2, 0, 1)  # Gray to RGB, from HWC-layout to CHW layout
         img = np.ascontiguousarray(img)
 
         return img_path, img, img0, None
