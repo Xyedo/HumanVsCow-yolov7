@@ -7,7 +7,7 @@ import torch.backends.cudnn as cudnn
 from numpy import random
 from mpyg321.MPyg321Player import MPyg321Player
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams
+from utils.datasets import LoadWebcam
 from utils.general import check_img_size, non_max_suppression, scale_coords, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
@@ -31,7 +31,7 @@ def detect():
         model.half()  # to FP16
 
     cudnn.benchmark = True  # set True to speed up constant image size inference
-    dataset = LoadStreams(source, img_size=imgsz, stride=stride)
+    dataset = LoadWebcam(source, img_size=imgsz, stride=stride)
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
