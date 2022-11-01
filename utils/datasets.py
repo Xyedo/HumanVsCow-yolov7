@@ -206,7 +206,7 @@ class LoadImages:  # for inference
 
 
 class LoadWebcam:  # for inference
-    def __init__(self, pipe='0', img_size=160, stride=32):
+    def __init__(self, pipe='0', img_size=640, stride=32):
         self.img_size = img_size
         self.stride = stride
 
@@ -233,6 +233,7 @@ class LoadWebcam:  # for inference
 
         # Read frame
         ret_val, img0 = self.cap.read()
+        img0 = cv2.cvtColor(img0, cv2.COLOR_GRAY2RGB)
 
         # Print
         assert ret_val, f'Camera Error {self.pipe}'
