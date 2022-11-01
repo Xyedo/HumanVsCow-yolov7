@@ -232,18 +232,8 @@ class LoadWebcam:  # for inference
             raise StopIteration
 
         # Read frame
-        if self.pipe == 0:  # local camera
-            ret_val, img0 = self.cap.read()
-            img0 = cv2.flip(img0, 1)  # flip left-right
-        else:  # IP camera
-            n = 0
-            while True:
-                n += 1
-                self.cap.grab()
-                if n % 30 == 0:  # skip frames
-                    ret_val, img0 = self.cap.retrieve()
-                    if ret_val:
-                        break
+        ret_val, img0 = self.cap.read()
+        img0 = cv2.flip(img0, 1)  # flip left-right
 
         # Print
         assert ret_val, f'Camera Error {self.pipe}'
