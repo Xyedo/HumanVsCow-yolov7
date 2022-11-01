@@ -218,7 +218,6 @@ class LoadWebcam:  # for inference
 
         self.pipe = pipe
         self.cap = cv2.VideoCapture(pipe)  # video capture object
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)  # set buffer size
 
     def __iter__(self):
         self.count = -1
@@ -243,8 +242,7 @@ class LoadWebcam:  # for inference
         img = letterbox(img0, self.img_size, stride=self.stride)[0]
 
         # Convert
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)  # Gray to RGB,
-        img = img.transpose(2, 0, 1)  # from HWC-layout to CHW layout
+        img = img[:, :, ::-1].transpose(2, 0, 1)  # Gray to RGB, from HWC-layout to CHW layout
         img = np.ascontiguousarray(img)
 
         return img_path, img, img0, None
