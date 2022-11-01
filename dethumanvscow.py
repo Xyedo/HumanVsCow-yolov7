@@ -2,13 +2,12 @@ import argparse
 import time
 import threading
 import cv2
-import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
 from mpyg321.MPyg321Player import MPyg321Player
 from models.experimental import attempt_load
-from utils.datasets import letterbox
+from utils.datasets import LoadWebcam
 from utils.general import check_img_size, non_max_suppression, scale_coords, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
@@ -17,7 +16,6 @@ from utils.realtime_db_firebase.realtime import Realtime
 
 def detect():
     source, weights, imgsz = opt.source, opt.weights, opt.img_size
-    source = eval(source) if source.isnumeric() else source
     alarm_once = True
     # Initialize
     set_logging()
@@ -33,6 +31,7 @@ def detect():
         model.half()  # to FP16
 
     cudnn.benchmark = True  # set True to speed up constant image size inference
+    dataset = LoadWebcam(source, img_size=imgsz, stride=stride)
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
@@ -43,22 +42,14 @@ def detect():
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     old_img_w = old_img_h = imgsz
     old_img_b = 1
+
     t0 = time.time()
-    cap = cv2.VideoCapture(source)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
-
-    while cap.isOpened():
-        ret, im0 = cap.read()
-        # im0 = cv2.cvtColor(im0, cv2.COLOR_GRAY2RGB)
-        if not ret or cv2.waitKey(1) == ord("q"):
-            break
-        img = letterbox(im0, imgsz, stride=stride)[0]
-        img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
-        img = np.ascontiguousarray(img)
-
+    for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
 
         # Warmup
         if device.type != 'cpu' and (
@@ -67,22 +58,21 @@ def detect():
             old_img_h = img.shape[2]
             old_img_w = img.shape[3]
             for i in range(3):
-                model(img, augment=False)[0]
-        if img.ndimension() == 3:
-            img = img.unsqueeze(0)
+                model(img, augment=True)[0]
+
         # Inference
         t1 = time_synchronized()
         with torch.no_grad():  # Calculating gradients would cause a GPU memory leak
-            pred = model(img, augment=False)[0]
+            pred = model(img, augment=True)[0]
         t2 = time_synchronized()
 
         # Apply NMS
-        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, agnostic=False)
+        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, agnostic=True)
         t3 = time_synchronized()
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
-            s = ''
+            p, s, im0 = path, '', im0s
             if len(det) == 0:
                 continue
             # Rescale boxes from img_size to im0 size
@@ -94,7 +84,8 @@ def detect():
 
             # Write results
             for *xyxy, conf, cls in reversed(det):
-
+                # if names[int(cls)] != "Human":
+                   # continue
                 label = f'{names[int(cls)]} {conf:.2f}'
                 plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
@@ -116,7 +107,7 @@ def detect():
             # --ENDED
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
-            cv2.imshow("humanvscow", im0)
+            cv2.imshow(str(p), im0)
             cv2.waitKey(1)  # 1 millisecond
 
     print(f'Done. ({time.time() - t0:.3f}s)')
@@ -126,7 +117,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='humanvscow160.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default='0', help='source')  # file/folder, 0 for webcam
-    parser.add_argument('--img-size', type=int, default=480, help='inference size (pixels)')
+    parser.add_argument('--img-size', type=int, default=160, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
