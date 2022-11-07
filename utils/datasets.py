@@ -245,7 +245,7 @@ class LoadWebcam:  # for inference
 
         # Convert
 
-        img = img[:, :, ::-1].transpose(2, 0, 1)  # Gray to RGB, from HWC-layout to CHW layout
+        img = img.transpose(2, 0, 1)  # from HWC-layout to CHW layout
         img = np.ascontiguousarray(img)
 
         return img_path, img, img0, None

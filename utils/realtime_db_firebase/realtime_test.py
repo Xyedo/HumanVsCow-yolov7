@@ -17,6 +17,18 @@ class RealtimeDBTestCase(unittest.TestCase):
         img = cv2.imread("test_img.jpg")
         self.rt.add_image(img)
 
+    def testCheckAlarm(self):
+        self.rt.check_alarm()
+        self.assertTrue(self.rt.is_alarm_on())
+
+    def testCheckAlarmConn(self):
+        ts_alarm = []
+        for i in range(10):
+            t1 = threading.Thread(target=self.rt.check_alarm)
+            ts_alarm.append(t1)
+            t1.start()
+        for t in ts_alarm:
+            t.join()
     def testConcurency(self):
         im0 = cv2.imread("test_img.jpg")
         ts_img_data = []

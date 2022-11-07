@@ -5,7 +5,7 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
-from mpyg321.MPyg321Player import MPyg321Player
+from mpyg321.MPyg123Player import MPyg123Player, PlayerStatus
 from models.experimental import attempt_load
 from utils.datasets import LoadWebcam
 from utils.general import check_img_size, non_max_suppression, scale_coords, set_logging
@@ -16,7 +16,7 @@ from utils.realtime_db_firebase.realtime import Realtime
 
 def detect():
     source, weights, imgsz = opt.source, opt.weights, opt.img_size
-    alarm_once = True
+    alarm_check = True
     # Initialize
     set_logging()
     device = select_device(opt.device)
@@ -65,7 +65,8 @@ def detect():
         with torch.no_grad():  # Calculating gradients would cause a GPU memory leak
             pred = model(img, augment=True)[0]
         t2 = time_synchronized()
-
+        if opt.connect_rtdb:
+            threading.Thread(target=realtime.check_alarm)
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, agnostic=True)
         t3 = time_synchronized()
@@ -84,8 +85,8 @@ def detect():
 
             # Write results
             for *xyxy, conf, cls in reversed(det):
-                # if names[int(cls)] != "Human":
-                   # continue
+                if names[int(cls)] != "Human":
+                    continue
                 label = f'{names[int(cls)]} {conf:.2f}'
                 plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
@@ -100,15 +101,20 @@ def detect():
                         th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
                         ts_logger.append(th2)
                         th2.start()
-                if opt.alarm and conf > 0.7 and alarm_once:
-                    alarm.play_song("alarm.mp3", loop=True)
-                    alarm_once = False
+                    if opt.alarm and float(conf) > 0.7:
+                        if alarm_check:
+                            if alarm.status == PlayerStatus.PLAYING:
+                                continue
+                            alarm.play()
+                        else:
+                            alarm.stop()
+                        alarm_check = realtime.is_alarm_on()
 
             # --ENDED
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
-            cv2.imshow(str(p), im0)
-            cv2.waitKey(1)  # 1 millisecond
+            # cv2.imshow(str(p), im0)
+            # cv2.waitKey(1)  # 1 millisecond
 
     print(f'Done. ({time.time() - t0:.3f}s)')
 
@@ -133,7 +139,8 @@ if __name__ == '__main__':
     ts_img_data = []
     ts_logger = []
     if opt.alarm:
-        alarm = MPyg321Player()
+        alarm = MPyg123Player()
+        alarm.set_song("./alarm.mp3")
     with torch.no_grad():
         detect()
     for t in ts_img_data:
