@@ -67,7 +67,8 @@ def detect():
             pred = model(img, augment=True)[0]
         t2 = time_synchronized()
         if opt.connect_rtdb:
-            threading.Thread(target=realtime.check_alarm)
+            chk_alarm = threading.Thread(target=realtime.check_alarm, args=())
+            chk_alarm.start()
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, agnostic=True)
         t3 = time_synchronized()
