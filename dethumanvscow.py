@@ -102,20 +102,16 @@ def detect():
                         th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
                         ts_logger.append(th2)
                         th2.start()
-                    if opt.alarm and float(conf) > 0.7:
+                    if opt.alarm and float(conf) >= 0.5:
+                        alarm_check = realtime.is_alarm_on()
                         if alarm_check:
                             if alarm.status == PlayerStatus.PLAYING:
                                 continue
                             alarm.play()
                         else:
                             alarm.stop()
-                        alarm_check = realtime.is_alarm_on()
-
-            # --ENDED
-            # Print time (inference + NMS)
+                # --ENDED
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
-            # cv2.imshow(str(p), im0)
-            # cv2.waitKey(1)  # 1 millisecond
 
     print(f'Done. ({time.time() - t0:.3f}s)')
 
@@ -142,6 +138,7 @@ if __name__ == '__main__':
     if opt.alarm:
         alarm = MPyg123Player()
         alarm.set_song("./alarm.mp3")
+        alarm.set_loop(True)
     with torch.no_grad():
         detect()
     for t in ts_img_data:
