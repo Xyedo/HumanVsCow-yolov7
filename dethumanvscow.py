@@ -5,8 +5,7 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
-from mpyg321.MPyg123Player import PlayerStatus
-from mpyg321.MPyg321Player import MPyg321Player
+from mpyg321.MPyg123Player import PlayerStatus, MPyg123Player
 from models.experimental import attempt_load
 from utils.datasets import LoadWebcam
 from utils.general import check_img_size, non_max_suppression, scale_coords, set_logging
@@ -141,7 +140,7 @@ if __name__ == '__main__':
     ts_img_data = []
     ts_logger = []
     if opt.alarm:
-        alarm = MPyg321Player()
+        alarm = MPyg123Player()
         alarm.set_song("./alarm.mp3")
     with torch.no_grad():
         detect()
