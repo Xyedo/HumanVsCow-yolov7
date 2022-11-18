@@ -5,6 +5,7 @@ import numpy
 from firebase_admin import credentials
 from firebase_admin import db
 from firebase_admin import storage
+from firebase_admin import messaging
 from datetime import datetime
 import utils.realtime_db_firebase.constant as constant
 from tempfile import TemporaryFile
@@ -27,6 +28,8 @@ class Realtime:
         self._interference_locker = Lock()
         self._is_add_img_finish = True
         self._is_add_interference_finish = True
+        token = db.reference("token").get()
+        self._reference_token = token["admin"]
 
     def is_interference_upload_finish(self):
         with self._interference_locker:
@@ -35,30 +38,6 @@ class Realtime:
     def is_img_upload_finish(self):
         with self._img_locker:
             return self._is_add_img_finish
-
-    def _set_interference_finish(self, val: bool):
-        with self._interference_locker:
-            self._is_add_interference_finish = val
-
-    def _set_img_finish(self, val: bool):
-        with self._img_locker:
-            self._is_add_img_finish = val
-
-    def save_interference(self, conf: float):
-        self._set_interference_finish(False)
-        now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-        self._human_ref_json.push().set({
-            'isHuman': conf,
-            'detectedDate': now
-        })
-        self._set_interference_finish(True)
-
-    def _add_image_json(self, public_url: str):
-        now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-        self._human_ref_img.push().set({
-            'imgUrl': public_url,
-            'capturedDate': now
-        })
 
     def add_image(self, file: numpy.ndarray):
         self._set_img_finish(False)
@@ -80,3 +59,39 @@ class Realtime:
     def is_alarm_on(self) -> bool:
         with self._alarm_locker:
             return self._is_alarm_on
+
+    def save_interference(self, conf: float):
+        self._set_interference_finish(False)
+        now = datetime.now().isoformat()
+
+        self._human_ref_json.push({
+            'isHuman': conf,
+            'detectedDate': now
+        })
+        self._set_interference_finish(True)
+
+    def _set_interference_finish(self, val: bool):
+        with self._interference_locker:
+            self._is_add_interference_finish = val
+
+    def _set_img_finish(self, val: bool):
+        with self._img_locker:
+            self._is_add_img_finish = val
+
+    def _add_image_json(self, public_url: str):
+        now = datetime.now().isoformat()
+        self._human_ref_img.push({
+            'imgUrl': public_url,
+            'capturedDate': now
+        })
+        self._send_notif(public_url)
+
+    def _send_notif(self, image_uri: str):
+        msg = messaging.Message(
+            token=self._reference_token,
+            notification=messaging.Notification(title="Human Detected!",
+                                                body="the percentage its human is above 70%"),
+            android=messaging.AndroidConfig(priority="high",
+                                            notification=messaging.AndroidNotification(image=image_uri)),
+        )
+        messaging.send(msg)

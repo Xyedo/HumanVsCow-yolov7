@@ -2,6 +2,8 @@ import threading
 import time
 import unittest
 from realtime import Realtime
+from PIL import Image
+import numpy
 import cv2
 
 
@@ -14,8 +16,9 @@ class RealtimeDBTestCase(unittest.TestCase):
         self.rt.save_interference(0.5)
 
     def testAddImage(self):
-        img = cv2.imread("test_img.jpg")
-        self.rt.add_image(img)
+        img = Image.open("test_img.jpg")
+        np_img = numpy.asarray(img)
+        self.rt.add_image(np_img)
 
     def testCheckAlarm(self):
         self.rt.check_alarm()
@@ -24,9 +27,11 @@ class RealtimeDBTestCase(unittest.TestCase):
     def testCheckAlarmConn(self):
         ts_alarm = []
         for i in range(10):
-            t1 = threading.Thread(target=self.rt.check_alarm)
+            t1 = threading.Thread(target=self.rt.check_alarm, args=())
             ts_alarm.append(t1)
             t1.start()
+            time.sleep(2)
+            self.assertTrue(self.rt.is_alarm_on())
         for t in ts_alarm:
             t.join()
     def testConcurency(self):
