@@ -116,6 +116,7 @@ def detect():
     except KeyboardInterrupt:
         dataset.cap.release()
         cv2.destroyAllWindows()
+        print("resource cleaned succesfully")
 
 
 
