@@ -220,12 +220,7 @@ class LoadWebcam:  # for inference
         self.cap = cv2.VideoCapture(pipe)  # video capture object
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 
-    def __iter__(self):
-        self.count = -1
-        return self
-
     def __next__(self):
-        self.count += 1
         if cv2.waitKey(1) == ord('q'):  # q to quit
             self.cap.release()
             cv2.destroyAllWindows()
@@ -238,7 +233,7 @@ class LoadWebcam:  # for inference
         # Print
         assert ret_val, f'Camera Error {self.pipe}'
         img_path = 'webcam.jpg'
-        print(f'webcam {self.count}: ', end='')
+        print(f'webcam: ', end='')
 
         # Padded resize
         img = letterbox(img0, self.img_size, stride=self.stride)[0]

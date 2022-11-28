@@ -41,8 +41,6 @@ def detect():
         # Run inference
         if device.type != 'cpu':
             model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
-        old_img_w = old_img_h = imgsz
-        old_img_b = 1
 
         for path, img, im0s, vid_cap in dataset:
             img = torch.from_numpy(img).to(device)
@@ -50,15 +48,6 @@ def detect():
             img /= 255.0  # 0 - 255 to 0.0 - 1.0
             if img.ndimension() == 3:
                 img = img.unsqueeze(0)
-
-            # Warmup
-            if device.type != 'cpu' and (
-                    old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
-                old_img_b = img.shape[0]
-                old_img_h = img.shape[2]
-                old_img_w = img.shape[3]
-                for i in range(3):
-                    model(img, augment=False)[0]
 
             # Inference
             t1 = time_synchronized()
@@ -68,7 +57,7 @@ def detect():
             if opt.connect_rtdb:
                 chk_alarm = threading.Thread(target=realtime.check_alarm, args=())
                 chk_alarm.start()
-                if not alarm_check:
+                if not alarm_check and alarm.status == PlayerStatus.PLAYING:
                     alarm.stop()
 
             # Apply NMS
