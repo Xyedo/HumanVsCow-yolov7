@@ -58,12 +58,12 @@ def detect():
                 old_img_h = img.shape[2]
                 old_img_w = img.shape[3]
                 for i in range(3):
-                    model(img, augment=True)[0]
+                    model(img, augment=False)[0]
 
             # Inference
             t1 = time_synchronized()
             with torch.no_grad():  # Calculating gradients would cause a GPU memory leak
-                pred = model(img, augment=True)[0]
+                pred = model(img, augment=False)[0]
             t2 = time_synchronized()
             if opt.connect_rtdb:
                 chk_alarm = threading.Thread(target=realtime.check_alarm, args=())
