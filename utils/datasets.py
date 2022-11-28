@@ -220,6 +220,9 @@ class LoadWebcam:  # for inference
         self.cap = cv2.VideoCapture(pipe)  # video capture object
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 
+    def __iter__(self):
+        return self
+
     def __next__(self):
         if cv2.waitKey(1) == ord('q'):  # q to quit
             self.cap.release()
