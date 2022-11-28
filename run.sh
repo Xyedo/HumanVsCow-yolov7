@@ -1,5 +1,12 @@
 #!/bin/bash
 
+export CUDA_HOME=/usr/local/cuda
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
+export PYTHONPATH=/usr/lib/python3.6/dist-packages:$PYTHONPATH
+export OPENBLAS_CORETYPE=ARMV8
+
 runDet() {
 	 source "/home/xyedo/project/python/python-venv/yolov7/bin/activate"
 	 cd  "/home/xyedo/project/python/HumanVsCow-yolov7"
