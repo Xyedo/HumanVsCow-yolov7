@@ -68,8 +68,11 @@ def detect():
             if opt.connect_rtdb:
                 chk_alarm = threading.Thread(target=realtime.check_alarm, args=())
                 chk_alarm.start()
+                if not alarm_check:
+                    alarm.stop()
+
             # Apply NMS
-            pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, agnostic=True)
+            pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, agnostic=False)
             t3 = time_synchronized()
 
             # Process detections
