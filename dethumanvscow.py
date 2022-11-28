@@ -57,6 +57,7 @@ def detect():
             if opt.connect_rtdb:
                 chk_alarm = threading.Thread(target=realtime.check_alarm, args=())
                 chk_alarm.start()
+                alarm_check = realtime.is_alarm_on()
                 if not alarm_check and alarm.status == PlayerStatus.PLAYING:
                     alarm.stop()
 
@@ -95,7 +96,6 @@ def detect():
                             ts_logger.append(th2)
                             th2.start()
                         if opt.alarm and float(conf) >= 0.5:
-                            alarm_check = realtime.is_alarm_on()
                             if alarm_check:
                                 if alarm.status == PlayerStatus.PLAYING:
                                     continue
