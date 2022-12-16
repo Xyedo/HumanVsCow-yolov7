@@ -158,8 +158,8 @@ def detect(save_img=False):
                                 h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                             else:  # stream
                                 fps, w, h = 10, im0.shape[1], im0.shape[0]
-                                save_path += '.avi'
-                            vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"MJPG"), fps, (w, h))
+                                save_path += '.mp4'
+                            vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
                         vid_writer.write(im0)
     except KeyboardInterrupt:
         cv2.destroyAllWindows()
