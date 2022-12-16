@@ -311,28 +311,24 @@ class LoadStreams:  # multiple IP or RTSP cameras
         return self
 
     def __next__(self):
-        try:
-            self.count += 1
-            img0 = self.imgs.copy()
-            if cv2.waitKey(1) == ord('q'):  # q to quit
-                cv2.destroyAllWindows()
-                raise StopIteration
-
-            # Letterbox
-            img = [letterbox(cv2.cvtColor(x, cv2.COLOR_GRAY2RGB), self.img_size, auto=self.rect, stride=self.stride)[0] for x in img0]
-
-            # Stack
-            img = np.stack(img, 0)
-
-            # Convert
-            img = img.transpose(0, 3, 1, 2)  # BGR to RGB, to bsx3x416x416
-            img = np.ascontiguousarray(img)
-
-            return self.sources, img, img0, None
-        except KeyboardInterrupt:
+        self.count += 1
+        img0 = self.imgs.copy()
+        if cv2.waitKey(1) == ord('q'):  # q to quit
             cv2.destroyAllWindows()
-            print("resource cleaned succesfully")
             raise StopIteration
+
+        # Letterbox
+        img = [letterbox(cv2.cvtColor(x, cv2.COLOR_GRAY2RGB), self.img_size, auto=self.rect, stride=self.stride)[0] for x in img0]
+
+        # Stack
+        img = np.stack(img, 0)
+
+        # Convert
+        img = img.transpose(0, 3, 1, 2)  # BGR to RGB, to bsx3x416x416
+        img = np.ascontiguousarray(img)
+
+        return self.sources, img, img0, None
+
     def __len__(self):
         return 0  # 1E12 frames = 32 streams at 30 FPS for 30 years
 
