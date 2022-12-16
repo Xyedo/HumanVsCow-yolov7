@@ -5,10 +5,11 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
+from pathlib import Path
 from mpyg321.MPyg123Player import PlayerStatus, MPyg123Player
 from models.experimental import attempt_load
 from utils.datasets import LoadWebcam
-from utils.general import check_img_size, non_max_suppression, scale_coords, set_logging
+from utils.general import check_img_size,increment_path, non_max_suppression, scale_coords, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
 from utils.realtime_db_firebase.realtime import Realtime
@@ -17,6 +18,9 @@ from utils.realtime_db_firebase.realtime import Realtime
 def detect():
     source, weights, imgsz = opt.source, opt.weights, opt.img_size
     alarm_check = True
+    save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
+    (save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+
     # Initialize
     set_logging()
     device = select_device(opt.device)
@@ -32,7 +36,10 @@ def detect():
 
     cudnn.benchmark = True  # set True to speed up constant image size inference
     dataset = LoadWebcam(source, img_size=imgsz, stride=stride)
-
+    fps = 10
+    w = int(dataset.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(dataset.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    vid_writer = cv2.VideoWriter(str(save_dir / "0.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
     try:
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
@@ -103,10 +110,12 @@ def detect():
                             else:
                                 alarm.stop()
                     # --ENDED
+                vid_writer.write(im0)
                 print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
 
     except KeyboardInterrupt:
         dataset.cap.release()
+        vid_writer.release()
         cv2.destroyAllWindows()
         print("resource cleaned succesfully")
 
