@@ -9,17 +9,18 @@ from pathlib import Path
 from mpyg321.MPyg123Player import PlayerStatus, MPyg123Player
 from models.experimental import attempt_load
 from utils.datasets import LoadWebcam
-from utils.general import check_img_size,increment_path, non_max_suppression, scale_coords, set_logging
+from utils.general import check_img_size, xyxy2xywh, increment_path, non_max_suppression, scale_coords, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
 from utils.realtime_db_firebase.realtime import Realtime
 
 
 def detect():
-    source, weights, imgsz = opt.source, opt.weights, opt.img_size
+    source, weights, save_txt, imgsz = opt.source, opt.weights, opt.save_txt, opt.img_size
     alarm_check = True
     save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
-    (save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+
 
     # Initialize
     set_logging()
@@ -36,7 +37,7 @@ def detect():
 
     cudnn.benchmark = True  # set True to speed up constant image size inference
     dataset = LoadWebcam(source, img_size=imgsz, stride=stride)
-    fps = 10
+    fps = dataset.cap.get(cv2.CAP_PROP_FPS)
     w = int(dataset.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(dataset.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     vid_writer = cv2.VideoWriter(str(save_dir / "0.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
@@ -74,42 +75,49 @@ def detect():
 
             # Process detections
             for i, det in enumerate(pred):  # detections per image
-                p, s, im0 = path, '', im0s
+                p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
+
                 if len(det) == 0:
-                    continue
-                # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-                # Print results
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    # Rescale boxes from img_size to im0 size
+                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                    # Print results
+                    for c in det[:, -1].unique():
+                        n = (det[:, -1] == c).sum()  # detections per class
+                        s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
-                # Write results
-                for *xyxy, conf, cls in reversed(det):
-                    if names[int(cls)] != "Human":
-                        continue
-                    label = f'{names[int(cls)]} {conf:.2f}'
-                    plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+                    # Write results
+                    for *xyxy, conf, cls in reversed(det):
+                        if save_txt:  # Write to file
+                            pa = Path(p)
+                            txt_path = str(save_dir / 'labels' / pa.stem) + f'_{frame}'  # img.txt
+                            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                            line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
+                            with open(txt_path + '.txt', 'a') as f:
+                                f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                    # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
-                    if opt.connect_rtdb:
-                        if realtime.is_img_upload_finish() and float(conf) > 0.7:
-                            th1 = threading.Thread(target=realtime.add_image, args=(im0,))
-                            ts_img_data.append(th1)
-                            th1.start()
+                        label = f'{names[int(cls)]} {conf:.2f}'
+                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
-                        if realtime.is_interference_upload_finish():
-                            th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
-                            ts_logger.append(th2)
-                            th2.start()
-                        if opt.alarm and float(conf) >= 0.5:
-                            if alarm_check:
-                                if alarm.status == PlayerStatus.PLAYING:
-                                    continue
-                                alarm.play()
-                            else:
-                                alarm.stop()
-                    # --ENDED
+                        # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
+                        if opt.connect_rtdb:
+                            if realtime.is_img_upload_finish() and float(conf) > 0.7:
+                                th1 = threading.Thread(target=realtime.add_image, args=(im0,))
+                                ts_img_data.append(th1)
+                                th1.start()
+
+                            if realtime.is_interference_upload_finish():
+                                th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
+                                ts_logger.append(th2)
+                                th2.start()
+                            if opt.alarm and float(conf) >= 0.5:
+                                if alarm_check:
+                                    if alarm.status == PlayerStatus.PLAYING:
+                                        continue
+                                    alarm.play()
+                                else:
+                                    alarm.stop()
+                        # --ENDED
                 vid_writer.write(im0)
                 print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
 
@@ -119,7 +127,9 @@ def detect():
         cv2.destroyAllWindows()
         print("resource cleaned succesfully")
 
-
+    if save_txt:
+        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+        print(f"Results saved to {save_dir}{s}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -129,6 +139,8 @@ if __name__ == '__main__':
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
+    parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')

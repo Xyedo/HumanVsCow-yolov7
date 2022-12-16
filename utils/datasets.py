@@ -275,7 +275,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
                 check_requirements(('pafy', 'youtube_dl'))
                 import pafy
                 url = pafy.new(url).getbest(preftype="mp4").url
-            cap = cv2.VideoCapture(url, cv2.CAP_GSTREAMER)
+            cap = cv2.VideoCapture(url)
             assert cap.isOpened(), f'Failed to open {s}'
             w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -318,7 +318,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
             raise StopIteration
 
         # Letterbox
-        img = [letterbox(cv2.cvtColor(x, cv2.COLOR_GRAY2BGR), self.img_size, auto=self.rect, stride=self.stride)[0] for x in img0]
+        img = [letterbox(x, self.img_size, auto=self.rect, stride=self.stride)[0] for x in img0]
 
         # Stack
         img = np.stack(img, 0)
