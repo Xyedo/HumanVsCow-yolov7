@@ -16,7 +16,7 @@ class RealtimeDBTestCase(unittest.TestCase):
         self.rt.save_interference(0.5)
 
     def testAddImage(self):
-        img = Image.open("test_img.jpg")
+        img = Image.open("C:/Users/ACER/Projects/TA/DataSet/Cuplikan layar 2022-12-02 173325.jpg")
         np_img = numpy.asarray(img)
         self.rt.add_image(np_img)
 
@@ -34,6 +34,7 @@ class RealtimeDBTestCase(unittest.TestCase):
             self.assertTrue(self.rt.is_alarm_on())
         for t in ts_alarm:
             t.join()
+
     def testConcurency(self):
         im0 = cv2.imread("test_img.jpg")
         ts_img_data = []
