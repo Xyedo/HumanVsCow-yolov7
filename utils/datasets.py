@@ -318,13 +318,13 @@ class LoadStreams:  # multiple IP or RTSP cameras
             raise StopIteration
 
         # Letterbox
-        img = [letterbox(x, self.img_size, auto=self.rect, stride=self.stride)[0] for x in img0]
+        img = [letterbox(cv2.cvtColor(x, cv2.COLOR_GRAY2RGB), self.img_size, auto=self.rect, stride=self.stride)[0] for x in img0]
 
         # Stack
         img = np.stack(img, 0)
 
         # Convert
-        img = img[:, :, :, ::-1].transpose(0, 3, 1, 2)  # BGR to RGB, to bsx3x416x416
+        img = img.transpose(0, 3, 1, 2)  # BGR to RGB, to bsx3x416x416
         img = np.ascontiguousarray(img)
 
         return self.sources, img, img0, None
