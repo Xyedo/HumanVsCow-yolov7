@@ -97,7 +97,7 @@ def detect(save_img=False):
                 p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(), dataset.count
 
                 p = Path(p)  # to Path
-                save_path = str(save_dir / p.name)  # img.jpg
+                save_path = str(save_dir / "0")  # img.jpg
                 txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
                 gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if len(det):
@@ -159,7 +159,7 @@ def detect(save_img=False):
                             else:  # stream
                                 fps, w, h = 10, im0.shape[1], im0.shape[0]
                                 save_path += '.mp4'
-                            vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, (w, h))
+                            vid_writer = cv2.VideoWriter(save_path, cv2.CAP_GSTREAMER, fps, (w, h))
                         vid_writer.write(im0)
     except KeyboardInterrupt:
         cv2.destroyAllWindows()
