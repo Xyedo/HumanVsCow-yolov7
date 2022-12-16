@@ -159,7 +159,7 @@ def detect(save_img=False):
                             else:  # stream
                                 fps, w, h = 10, im0.shape[1], im0.shape[0]
                                 save_path += '.mp4'
-                            vid_writer = cv2.VideoWriter(save_path, cv2.CAP_GSTREAMER, fps, (w, h))
+                            vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                         vid_writer.write(im0)
     except KeyboardInterrupt:
         cv2.destroyAllWindows()
