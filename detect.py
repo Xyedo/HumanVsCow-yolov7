@@ -159,11 +159,14 @@ def detect(save_img=False):
                             else:  # stream
                                 fps, w, h = 20, im0.shape[1], im0.shape[0]
                                 save_path += '.mp4'
-                            vid_writer = cv2.VideoWriter("0.mp4", cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                            vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h), True)
                         vid_writer.write(im0)
     except KeyboardInterrupt:
         cv2.destroyAllWindows()
+        if vid_writer is not None:
+            vid_writer.release()
         print("resource cleaned succesfully")
+
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         # print(f"Results saved to {save_dir}{s}")
