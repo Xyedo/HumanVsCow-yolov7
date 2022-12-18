@@ -100,24 +100,29 @@ def detect():
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
                         # ---UPLOADING TO FIREBASE REALTIME DB --MOST IMPORTANT THING TO WORK
-                        if opt.connect_rtdb:
-                            if realtime.is_img_upload_finish() and float(conf) > 0.7:
-                                th1 = threading.Thread(target=realtime.add_image, args=(im0,))
-                                ts_img_data.append(th1)
-                                th1.start()
+                        if names[int(cls)] == "Human":
 
-                            if realtime.is_interference_upload_finish():
-                                th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
-                                ts_logger.append(th2)
-                                th2.start()
-                            if opt.alarm and float(conf) >= 0.5:
-                                if alarm_check:
-                                    if alarm.status == PlayerStatus.PLAYING:
-                                        continue
-                                    alarm.play()
-                                else:
-                                    alarm.stop()
+                            if opt.connect_rtdb:
+                                if realtime.is_img_upload_finish() and float(conf) > 0.7:
+                                    th1 = threading.Thread(target=realtime.add_image, args=(im0,))
+                                    ts_img_data.append(th1)
+                                    th1.start()
+
+                                if realtime.is_interference_upload_finish():
+                                    th2 = threading.Thread(target=realtime.save_interference, args=(float(conf),))
+                                    ts_logger.append(th2)
+                                    th2.start()
+                                if opt.alarm and float(conf) >= 0.5:
+                                    if alarm_check:
+                                        if alarm.status == PlayerStatus.PLAYING:
+                                            continue
+                                        alarm.play()
+                                    else:
+                                        alarm.stop()
                         # --ENDED
+                cv2.imshow(p, im0)
+                cv2.waitKey(1)
+
                 vid_writer.write(im0)
                 print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}s) NMS')
 
