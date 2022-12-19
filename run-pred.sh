@@ -36,4 +36,5 @@ else
 		fi
 	done
 fi
+sleep 2s
 runDet
